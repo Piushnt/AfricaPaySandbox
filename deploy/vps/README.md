@@ -4,11 +4,11 @@ Cette configuration prépare Docker Compose pour Next.js, NestJS, PostgreSQL, Re
 
 ## Pré-requis
 
-VPS Linux avec Docker Engine + Compose plugin, nom DNS pointant vers le serveur, ports 80/443 autorisés et certificats TLS valides. Créer une sauvegarde du projet et ne jamais exposer directement les ports PostgreSQL/Redis.
+VPS Linux avec Docker Engine + Compose plugin, nom DNS pointant vers le serveur, ports 80/443 autorisés et certificats TLS valides. Créer une sauvegarde du projet et ne jamais exposer directement les ports PostgreSQL/Redis. Le Compose ne déclare pas encore de worker BullMQ : son implémentation est un lot futur.
 
 ## Démarrage
 
-1. Depuis la racine, copier `deploy/vps/.env.example` vers `deploy/vps/.env` et remplacer chaque secret par une valeur aléatoire forte distincte. La valeur utilisateur/mot de passe de `DATABASE_URL` doit correspondre à `POSTGRES_USER`/`POSTGRES_PASSWORD` et être URL-encodée au besoin.
+1. Depuis la racine, copier `deploy/vps/.env.example` vers `deploy/vps/.env` et remplacer chaque secret par une valeur aléatoire forte distincte. Générer un hash de mot de passe bcryptjs de coût ≥ 12 pour `AUTH_PASSWORD_HASH`; ne pas enregistrer le mot de passe en clair. La valeur utilisateur/mot de passe de `DATABASE_URL` doit correspondre à `POSTGRES_USER`/`POSTGRES_PASSWORD` et être URL-encodée au besoin. Définir `DEMO_MODE=false`.
 2. Définir `server_name` et les chemins des certificats dans `nginx/vps.conf`; déposer le certificat et sa clé dans `deploy/vps/certs/` avec permissions restreintes. En production, renouveler automatiquement les certificats et tester le renouvellement.
 3. Depuis la racine : `docker compose --env-file deploy/vps/.env -f deploy/vps/compose.yml up --build -d`.
 4. Appliquer les migrations VPS après validation du schéma : `cd apps/api && npx prisma migrate deploy --schema prisma/vps/schema.prisma` (les fichiers de migration PostgreSQL devront être générés/revus avant le premier déploiement).

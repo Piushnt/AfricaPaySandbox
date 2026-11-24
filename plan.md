@@ -14,14 +14,14 @@ Le service Redis managé n’est pas activé dans ce plan. Dans Manus, la livrai
 
 ## Architecture envisagée
 
-Monolithe modulaire en dépôt unique, avec interface Next.js sur le port géré et API NestJS sous `/v1`. Les appels navigateur utilisent des chemins relatifs et sont relayés par le serveur web vers l’API; les deux processus sont lancés par une seule commande de développement conforme à la plateforme. Le déploiement VPS utilise des conteneurs distincts pour `web`, `api`, `worker`, `postgres`, `redis` et le reverse proxy.
+Monolithe modulaire en dépôt unique, avec interface Next.js sur le port géré et API NestJS sous `/v1`. Les appels navigateur utilisent des chemins relatifs et sont relayés par le serveur web vers l’API; les deux processus sont lancés par une seule commande de développement conforme à la plateforme. Le Compose VPS préparé contient `web`, `api`, `postgres`, `redis` et le reverse proxy HTTPS. Le conteneur `worker` BullMQ est reporté jusqu’à la livraison effective du worker; il ne doit pas être déclaré avec une entrée absente.
 
 - `apps/web` : Next.js, React, TypeScript, Tailwind CSS, expérience développeur, dashboard, pages projets/transactions/webhooks, console de test et simulateur de téléphone/USSD.
 - `apps/api` : NestJS, API REST `/v1`, modules auth, organisations, projets, clés, fournisseurs, paiements, remboursements, simulations, webhooks, audit et documentation.
 - `packages/shared` et `packages/api-contracts` : modèles, validations et erreurs partagés; états et transitions de paiement centralisés.
 - `packages/sdk-typescript` : SDK initial pour appels API et idempotence.
 - `prisma/managed` et `prisma/vps` : schémas/migrations adaptés respectivement à MySQL géré et PostgreSQL VPS, avec contrat de données maintenu au niveau applicatif.
-- `deploy/vps` : Dockerfiles, Compose, configuration reverse proxy, exemples `.env`, scripts de migration/sauvegarde/restauration et documentation d’exploitation.
+- `deploy/vps` : Dockerfile multi-cible web/API, Compose de préparation, configuration reverse proxy, exemples `.env` et guide opératoire; migrations/sauvegardes/restauration et worker BullMQ restent à livrer.
 
 Le traitement de paiement est exclusivement simulé. L’idempotence est persistée et compare l’empreinte de la requête. Les transitions d’état sont validées côté service et historisées en événements. Une entrée outbox est créée dans la même transaction que le changement d’état; le worker la publie/rejoue et historise les tentatives de webhook avec signature HMAC-SHA256. Les URL de webhooks devront être validées et protégées contre SSRF avant livraison; les secrets ne seront jamais affichés après génération ni inscrits dans les logs.
 

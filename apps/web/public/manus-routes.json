@@ -1,1 +1,1 @@
-{"routes":[{"path":"/","title":"Console développeur"},{"path":"/transactions","title":"Transactions simulées"},{"path":"/docs","title":"Documentation API"}]}
+{"routes":[{"path":"/","title":"Console développeur"},{"path":"/login","title":"Connexion sandbox"},{"path":"/simulator","title":"Simulateur de paiements"},{"path":"/transactions","title":"Transactions simulées"},{"path":"/docs","title":"Documentation API"}]}

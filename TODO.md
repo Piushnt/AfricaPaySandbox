@@ -1,6 +1,13 @@
 # TODO — PAYMENT SANDBOX AFRICA
 
-État : plan approuvé; socle applicatif en cours. Les éléments marqués terminés ne le seront qu’après vérification dans le code ou par une exécution réelle.
+État : interface, API JWT et fichiers de préparation VPS de l’itération courante implémentés; les limites d’exploitation sont indiquées explicitement. Les livraisons ponctuelles ci-dessous sont cochées après vérification du code, du build et des requêtes locales. Les exigences générales non livrées restent ouvertes.
+
+## Itération courante — simulateur visuel, JWT et préparation VPS
+
+- [x] Ajouter sur Next.js `/simulator` pour choisir un des profils MTN, Moov ou Celtiis, saisir montant/numéro fictifs, choisir les 11 scénarios et visualiser le résultat de l’appel API, l’état, la timeline d’événements et un téléphone USSD fictif. Les valeurs PIN affichées sont purement décoratives; aucune valeur PIN n’est transmise. Aucun fonds réel n’est transféré.
+- [x] Ajouter `/login` et l’authentification JWT NestJS par cookie HTTP-only, une session d’une heure, logout/vérification de session, limite de tentatives et guard sur paiements, événements et scénarios; exiger `X-PSA-Request: dashboard` pour les requêtes protégées par cookie.
+- [x] Préparer Dockerfile multi-cible, Compose avec API/web/PostgreSQL/Redis/Nginx TLS, exemples d’environnement de production et guide VPS. Compose exige les secrets JWT/compte/hash bcrypt et désactive le mode démo par défaut. Redis reste non consommé; aucun worker BullMQ n’est fourni.
+- [ ] Valider la stack Docker sur un moteur Docker et la déployer/tester sur un VPS (Docker indisponible dans le sandbox et aucun VPS connecté).
 
 ## Console développeur et navigation responsive
 

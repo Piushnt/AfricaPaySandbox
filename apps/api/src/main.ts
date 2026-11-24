@@ -6,6 +6,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
+  const expressInstance = app.getHttpAdapter().getInstance() as { set(name: string, value: unknown): void };
+  expressInstance.set('trust proxy', 1);
   app.setGlobalPrefix('v1', { exclude: ['health'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   const swagger = new DocumentBuilder().setTitle('Payment Sandbox Africa API').setDescription('API de simulation uniquement — aucun fonds réel ne circule.').setVersion('1.0.0').addApiKey({ type: 'apiKey', in: 'header', name: 'X-API-Key' }, 'test-key').build();

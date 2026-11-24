@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Injectable, NotFoundException, Param, Post, Get, ConflictException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, Injectable, NotFoundException, Param, Post, Get, ConflictException, UseGuards } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ALLOWED_TRANSITIONS, CreatePaymentInput, Payment, PaymentEvent, PaymentScenario, PaymentStatus } from '@psa/contracts';
 import { IsIn, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 import { ProvidersService } from '../providers/providers.module';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 const SCENARIOS: readonly PaymentScenario[] = ['accepted', 'declined', 'insufficient_funds', 'invalid_number', 'unknown_number', 'expired', 'abandoned', 'pending', 'timeout', 'technical_error', 'provider_unavailable'];
 
@@ -94,6 +95,7 @@ export class PaymentsService {
 }
 
 @ApiTags('payments')
+@UseGuards(JwtAuthGuard)
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}

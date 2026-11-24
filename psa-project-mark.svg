@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="jade" x1="119" y1="112" x2="396" y2="407" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#71E2B8"/>
+      <stop offset="1" stop-color="#27A879"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#10191A"/>
+  <path d="M256 111c59 0 108 39 124 92m20 43c-5 60-55 108-117 112m-54-1c-59-12-103-62-106-122m15-53c21-43 66-71 118-71" stroke="url(#jade)" stroke-width="26" stroke-linecap="round"/>
+  <path d="m365 180 18 34 35-15M329 361l-38 2 10 37M139 231l-17-33-35 16" stroke="#B9F5DE" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="111" r="27" fill="#10191A" stroke="#71E2B8" stroke-width="16"/>
+  <circle cx="283" cy="358" r="27" fill="#10191A" stroke="#42C895" stroke-width="16"/>
+  <circle cx="123" cy="235" r="27" fill="#10191A" stroke="#71E2B8" stroke-width="16"/>
+  <circle cx="256" cy="242" r="26" fill="#DDFBF0"/>
+  <circle cx="256" cy="242" r="10" fill="#16885F"/>
+</svg>

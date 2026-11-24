@@ -1,1 +1,1 @@
-export default { logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" };
+export default { logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519664010506137/YdcQqBjbgEOudsEc.svg" };

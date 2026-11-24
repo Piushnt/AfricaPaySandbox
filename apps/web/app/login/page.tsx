@@ -1,0 +1,8 @@
+'use client';
+import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+export default function LoginPage() {
+  const router = useRouter(); const [email,setEmail]=useState('demo@sandbox.local'); const [password,setPassword]=useState(''); const [error,setError]=useState(''); const [busy,setBusy]=useState(false);
+  async function submit(e:FormEvent) { e.preventDefault(); setBusy(true);setError('');try{const r=await fetch('/v1/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password})});if(!r.ok)throw new Error((await r.json()).message??'Connexion refusée');router.replace('/');}catch(e){setError(e instanceof Error?e.message:'Erreur de connexion');}finally{setBusy(false);}}
+  return <main className="login-page"><div className="login-card"><a href="/" className="brand"><span className="brand-mark">↗</span><span>PAYMENT<br/>SANDBOX <i>AFRICA</i></span></a><span className="eyebrow">ACCÈS DÉVELOPPEUR</span><h1>Connexion sandbox</h1><p>Connectez-vous pour lancer et consulter des simulations.</p><form onSubmit={submit}><label>Adresse e-mail<input type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" autoComplete="current-password" minLength={10} required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="toast" role="alert">{error}</div>}<button className="button primary full" disabled={busy}>{busy?'Connexion…':'Se connecter'}</button></form><div className="login-note"><b>Sandbox exclusivement.</b> L’accès de démonstration est réservé au mode non-production. Aucun fonds réel ne circule.</div></div></main>;
+}

@@ -17,23 +17,14 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: redis://redis:6379
       PORT: 3001
-      DEMO_MODE: ${DEMO_MODE:-true}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/vps/.env}
+      AUTH_USER_EMAIL: ${AUTH_USER_EMAIL:?Set AUTH_USER_EMAIL in deploy/vps/.env}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?Set AUTH_PASSWORD_HASH in deploy/vps/.env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
     depends_on:
       postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    restart: unless-stopped
-  worker:
-    build:
-      context: ../..
-      dockerfile: deploy/vps/Dockerfile
-      target: worker
-    env_file: .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: redis://redis:6379
-    depends_on: [api, redis]
     restart: unless-stopped
   postgres:
     image: postgres:16-alpine
@@ -50,10 +41,12 @@ services:
     restart: unless-stopped
   redis:
     image: redis:7-alpine
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"]
     volumes: [redis_data:/data]
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 3s
       retries: 10

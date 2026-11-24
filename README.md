@@ -1,59 +1,59 @@
 # PAYMENT SANDBOX AFRICA
 
-Plateforme de développement pour créer et tester des intégrations de paiement Mobile Money en Afrique francophone, avec un lancement initial au Bénin. Le MVP simule uniquement des parcours de paiement : **aucun fonds réel n’est collecté ou transféré**. Les profils MTN Mobile Money Bénin, Moov Money Bénin et Celtiis Cash Bénin sont des profils de simulation paramétrables, et ne constituent pas des règles officielles ni des intégrations opérateur.
+Plateforme de développement pour créer et tester des intégrations de paiement Mobile Money en Afrique francophone, avec lancement initial au Bénin. Le MVP simule exclusivement des parcours de paiement : **aucun fonds réel n’est collecté ni transféré**. MTN Mobile Money Bénin, Moov Money Bénin et Celtiis Cash Bénin sont représentés comme des profils de test; ils ne constituent ni des règles officielles ni des intégrations opérateur.
 
 ## Cahier de bord des itérations
 
-Chaque livraison est consignée ici avec son nom, son contenu et son état. Une fonctionnalité marquée **dev** est implémentée dans le code; une fonctionnalité marquée **simulé** décrit des comportements de démonstration sans argent réel. Ces états ne signifient pas « production ».
+Les états qualifient le code, pas sa capacité à traiter des paiements réels : `dev` = implémenté, `simulé` = comportement de démonstration sans fonds, `prévu` = pas encore livré, `préparé` = fichiers d’infrastructure présents sans déploiement opérationnel.
 
-| Itération | Nom | Réalisé | État |
+| Itération | Nom | Livré | État |
 |---|---|---|---|
-| 0 | Socle & console développeur | Monorepo TypeScript Next.js/NestJS, dashboard, documentation initiale, catalogue des profils béninois, Swagger, contrats partagés, modèles Prisma Manus-MySQL/VPS-PostgreSQL et fichiers de préparation VPS. | dev — socle; fournisseurs et paiements en mémoire pour le moment |
-| 1 | Cycle de paiement canonique | Création/consultation/annulation de paiement, remboursements initiaux, validation de transitions, événements en mémoire et protection d’idempotence en mémoire. | dev — comportements simulés; pas de persistance DB branchée |
-| 2 | API des scénarios de simulation | Découverte des scénarios disponibles et exécution déterministe d’un scénario sur un paiement en attente/en traitement; événements de simulation ajoutés au cycle de vie. | dev — scénarios simulés; tests de contrat en cours |
-| 3 | Persistance et isolation multi-tenant | Prévu : Prisma opérationnel, données organisation/projet isolées, clés API et persistance de l’idempotence/outbox. | prévu |
-| 4 | Webhooks & simulateur de téléphone | Prévu : HMAC-SHA256, tentative/rejeu, scénarios USSD interactifs et inspection des payloads. | prévu |
-| 5 | Authentification, administration & durcissement | Prévu : comptes, sessions, rôles, vérification e-mail, quotas, audit, SSRF et secrets. | prévu |
-| 6 | Migration et déploiement VPS | Prévu : vérification des migrations PostgreSQL, worker BullMQ/Redis, certificats, sauvegarde/restauration et déploiement sur un VPS autorisé. | préparé — non déployé |
+| 0 | Socle & console développeur | Monorepo Next.js/NestJS, dashboard, documentation, fournisseurs béninois, Swagger, contrats partagés, schémas Prisma Manus-MySQL/VPS-PostgreSQL et configuration Docker de départ. | dev — socle; paiements en mémoire |
+| 1 | Cycle canonique de paiement | Création, consultation, annulation, remboursements initiaux, idempotence, transitions et événements en mémoire. | dev — simulation uniquement; aucune persistance métier |
+| 2 | Scénarios déterministes | Catalogue de 11 scénarios et endpoints `GET /v1/simulations/scenarios`, `POST /v1/simulations/payments/:paymentId/run`. | dev / simulé — 11 résultats déterministes |
+| 3 | Authentification JWT | Login, cookie JWT HTTP-only, guard sur paiements/simulations/événements, vérification de session, logout, limite d’essais et contrôle anti-CSRF pour l’authentification par cookie. | dev — mode de démo local; configuration secrète obligatoire en production |
+| 4 | Laboratoire visuel des scénarios | Page `/simulator` : formulaire, profils fournisseurs, choix des 11 cas, téléphone/USSD fictif et affichage du statut/événements; page `/login`. | dev / simulé — transactions uniquement en mémoire |
+| 5 | Persistance multi-tenant | Prisma connecté au moteur de paiement, comptes/organisations/projets, clés API et outbox durable. | prévu |
+| 6 | Webhooks & worker asynchrone | HMAC-SHA256, historique et rejeu, BullMQ worker, protection SSRF. | prévu — Redis peut être provisionné, worker non livré |
+| 7 | VPS & opérations | PostgreSQL opérationnel, migrations, sauvegardes/restauration, déploiement VPS et vérification TLS. | préparé — fichiers Docker/Compose/Nginx; non déployé |
 
-À chaque itération ultérieure, ajouter une ligne datée avec le nom de l’itération, le travail réellement livré et l’état (`dev`, `simulé`, `prévu`, `bloqué` ou `production`). Ne pas déclarer « production » sans déploiement et vérifications de sécurité correspondants.
+Ajouter une ligne datée par lot futur en conservant le nom, les travaux vérifiés et l’état réel; ne pas qualifier une simulation ou un déploiement préparatoire de production.
 
-## Endpoints actuellement implémentés
+## Authentification actuelle
 
-Tous les endpoints sandbox sont sous `/v1` et documentés dans Swagger à `/api-docs`.
+Les endpoints paiements, événements et simulation nécessitent un JWT en bearer ou le cookie HTTP-only `psa_access_token`. L’interface envoie `X-PSA-Request: dashboard` pour les appels par cookie. En mode non-production, identifiants locaux de démonstration : `demo@sandbox.local` / `Sandbox-Demo-Only!`. Ne jamais utiliser ce compte en production.
 
-| Méthode | Route | Description |
-|---|---|---|
-| `GET` | `/v1/providers` | Catalogue des profils fournisseurs de simulation. |
-| `GET` | `/v1/providers/:code/capabilities` | Capacités déclarées d’un profil sandbox. |
-| `POST` | `/v1/payments` | Crée un paiement simulé; prend en charge `Idempotency-Key`. |
-| `GET` | `/v1/payments` | Liste les paiements simulés du processus en mémoire. |
-| `GET` | `/v1/payments/:id` | Consulte un paiement. |
-| `POST` | `/v1/payments/:id/cancel` | Annule un paiement lorsque la transition est valide. |
-| `POST` | `/v1/payments/:id/refunds` | Demande un remboursement simulé. |
-| `GET` | `/v1/events` | Consulte les événements du processus en mémoire. |
-| `GET` | `/v1/simulations/scenarios` | Liste les scénarios de simulation supportés. |
-| `POST` | `/v1/simulations/payments/:paymentId/run` | Applique un scénario à un paiement en état `PENDING` ou `PROCESSING`. |
-| `GET` | `/health` | Vérification de disponibilité du service API. |
+En production, `NODE_ENV=production` impose `JWT_SECRET`, `AUTH_USER_EMAIL` et `AUTH_PASSWORD_HASH` (hash bcryptjs, coût recommandé ≥ 12); le mode démo ne fournit pas de compte implicite. Le JWT a une durée d’une heure. En développement sans `JWT_SECRET`, le secret est généré en mémoire et invalide les sessions au redémarrage. Pour HTTPS, laisser `COOKIE_SECURE=true`; sur un serveur HTTP local uniquement, `COOKIE_SECURE=false` choisit le mode cookie local `SameSite=Lax`.
 
-### Lancer un scénario
+## Endpoints
 
-```bash
-curl -X POST http://localhost:3000/v1/simulations/payments/pay_123/run \
-  -H 'Content-Type: application/json' \
-  -d '{"scenario":"insufficient_funds"}'
-```
+Les routes sont préfixées par `/v1`; Swagger est disponible via `/api-docs`.
 
-Scénarios actuels : `accepted`, `declined`, `insufficient_funds`, `invalid_number`, `unknown_number`, `expired`, `abandoned`, `pending`, `timeout`, `technical_error` et `provider_unavailable`. Pour des tests déterministes, le scénario doit être choisi explicitement; il ne s’agit pas de probabilités opérateur réelles.
+| Méthode | Route | Accès | Description |
+|---|---|---|---|
+| `POST` | `/v1/auth/login` | public | Authentifie par e-mail/mot de passe et pose le cookie JWT. |
+| `GET` | `/v1/auth/me` | session JWT | Vérifie la session et renvoie l’identité minimale. |
+| `POST` | `/v1/auth/logout` | public | Efface le cookie de session. |
+| `GET` | `/v1/providers` | public | Catalogue des profils de simulation. |
+| `GET` | `/v1/providers/:code/capabilities` | public | Capacités déclarées d’un profil sandbox. |
+| `POST` | `/v1/payments` | JWT | Crée un paiement simulé; accepte `Idempotency-Key`. |
+| `GET` | `/v1/payments` | JWT | Liste les paiements du processus en mémoire. |
+| `GET` | `/v1/payments/:id` | JWT | Consulte un paiement. |
+| `POST` | `/v1/payments/:id/cancel` | JWT | Annule si la transition est permise. |
+| `POST` | `/v1/payments/:id/refunds` | JWT | Demande un remboursement simulé. |
+| `GET` | `/v1/events` | JWT | Liste les événements en mémoire. |
+| `GET` | `/v1/simulations/scenarios` | JWT | Liste les 11 scénarios déterministes. |
+| `POST` | `/v1/simulations/payments/:paymentId/run` | JWT | Exécute un scénario si la transaction est `PENDING` ou `PROCESSING`. |
+| `GET` | `/health` | public | Readiness API. |
 
-## Développement local du projet
+Corps d’exécution d’un scénario : `{"scenario":"insufficient_funds"}`. Scénarios : `accepted`, `declined`, `insufficient_funds`, `invalid_number`, `unknown_number`, `expired`, `abandoned`, `pending`, `timeout`, `technical_error`, `provider_unavailable`.
 
-Prérequis : Node.js 22 et npm 10. Installer les dépendances à la racine avec `npm install`, puis démarrer les applications avec `npm run dev`. Next.js écoute sur le port 3000 et NestJS sur le port 3001; la console transmet les appels `/v1/...` à l’API.
+## Exécuter le projet
 
-Vérifications disponibles : `npm run typecheck`, `npm test` et `npm run build`.
+Prérequis : Node.js 22 et npm 10. `npm install`, puis `npm run dev`; Next.js écoute sur 3000 et NestJS sur 3001. Pages : `/`, `/login`, `/simulator`, `/transactions`, `/docs`.
 
-## Hébergement et limites actuelles
+Vérifications : `npm run typecheck`, `npm test`, `npm run build`. Docker Compose se trouve dans `deploy/vps/compose.yml`, le Dockerfile multi-cibles dans `deploy/vps/Dockerfile`, le proxy HTTPS dans `nginx/vps.conf`; un moteur Docker est requis pour les vérifier, et il n’est pas présent dans le sandbox courant. Avant le lancement sur VPS, renseigner `deploy/vps/.env.example` (notamment les secrets JWT et le hash bcrypt) et fournir des certificats dans `deploy/vps/certs/`.
 
-L’environnement géré Manus fournit une base compatible MySQL; le schéma de migration VPS vise PostgreSQL. Les deux moteurs ont des schémas distincts : un changement de DSN seul ne réalise pas une migration de données. Les scénarios et transactions de ce socle sont conservés en mémoire et perdus au redémarrage. Prisma, authentification, isolation par projet, worker/outbox durable, webhooks et vraie gestion de secrets ne sont pas encore connectés au parcours courant. L’API n’est pas prête à recevoir des paiements réels ou à être exposée comme plateforme de production.
+## Limites de livraison
 
-Les fichiers de déploiement préparatoires se trouvent dans `deploy/vps/`; l’application n’a pas été déployée sur le VPS.
+L’API n’utilise pas encore Prisma pour la persistance courante; les transactions et les tentatives d’idempotence vivent en mémoire et disparaissent au redémarrage. L’isolation organisation/projet, les clés API, l’outbox durable, BullMQ, les webhooks, la protection SSRF et les migrations SQL n’ont pas été implémentés. Redis est préparé dans le Compose mais n’est pas utilisé par un worker livré. La base gérée Manus est MySQL-compatible; la cible VPS est PostgreSQL et nécessitera une migration/conversion vérifiée. **Cette version n’est pas une plateforme de production de paiement.** Aucun VPS n’a été déployé.

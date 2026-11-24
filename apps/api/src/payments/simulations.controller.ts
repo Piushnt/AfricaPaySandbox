@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaymentScenario } from '@psa/contracts';
 import { IsIn, IsString } from 'class-validator';
 import { PaymentsService } from './payments.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 const scenarioCodes: PaymentScenario[] = ['accepted', 'declined', 'insufficient_funds', 'invalid_number', 'unknown_number', 'expired', 'abandoned', 'pending', 'timeout', 'technical_error', 'provider_unavailable'];
 const scenarioDescriptions: Record<PaymentScenario, string> = {
@@ -13,6 +14,7 @@ class RunScenarioDto {
 }
 
 @ApiTags('simulations')
+@UseGuards(JwtAuthGuard)
 @Controller('simulations')
 export class SimulationsController {
   constructor(private readonly payments: PaymentsService) {}
