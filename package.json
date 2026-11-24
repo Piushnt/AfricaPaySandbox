@@ -1,0 +1,21 @@
+{
+  "name": "payment-sandbox-africa",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.9",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run build -w @psa/contracts && concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "API_PORT=3001 npm run start:dev -w @psa/api",
+    "dev:web": "npm run dev -w @psa/web",
+    "build": "npm run build -w @psa/contracts && npm run build -w @psa/api && npm run build -w @psa/web",
+    "typecheck": "npm run typecheck -w @psa/contracts && npm run typecheck -w @psa/api && npm run typecheck -w @psa/web",
+    "test": "npm run test -w @psa/api",
+    "vps:up": "docker compose --env-file deploy/vps/.env -f deploy/vps/compose.yml up --build -d",
+    "vps:down": "docker compose --env-file deploy/vps/.env -f deploy/vps/compose.yml down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "~5.8.3"
+  }
+}

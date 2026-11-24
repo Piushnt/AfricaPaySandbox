@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/vps"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PaymentRecord {
+  id          String   @id @db.VarChar(32)
+  projectId   String   @map("project_id") @db.VarChar(64)
+  reference   String   @db.VarChar(100)
+  provider    String   @db.VarChar(32)
+  amount      BigInt
+  currency    String   @db.Char(3)
+  phoneNumber String   @map("phone_number") @db.VarChar(24)
+  status      String   @db.VarChar(24)
+  scenario    String   @db.VarChar(40)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  events      PaymentEventRecord[]
+  @@unique([projectId, reference])
+  @@index([projectId, status, createdAt])
+  @@map("payments")
+}
+
+model PaymentEventRecord {
+  id        String   @id @db.VarChar(40)
+  paymentId String   @map("payment_id") @db.VarChar(32)
+  type      String   @db.VarChar(80)
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  payment   PaymentRecord @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  @@index([paymentId, createdAt])
+  @@map("payment_events")
+}
+
+model IdempotencyRecord {
+  key         String   @id @db.VarChar(128)
+  projectId   String   @map("project_id") @db.VarChar(64)
+  fingerprint String   @db.Char(64)
+  resourceId  String   @map("resource_id") @db.VarChar(40)
+  createdAt   DateTime @default(now()) @map("created_at")
+  @@index([projectId, createdAt])
+  @@map("idempotency_records")
+}
