@@ -4,12 +4,14 @@ import { ALLOWED_TRANSITIONS, CreatePaymentInput, Payment, PaymentEvent, Payment
 import { IsIn, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 import { ProvidersService } from '../providers/providers.module';
 
+const SCENARIOS: readonly PaymentScenario[] = ['accepted', 'declined', 'insufficient_funds', 'invalid_number', 'unknown_number', 'expired', 'abandoned', 'pending', 'timeout', 'technical_error', 'provider_unavailable'];
+
 class CreatePaymentDto implements CreatePaymentInput {
   @IsString() @IsIn(['mtn_benin', 'moov_benin', 'celtiis_benin']) provider!: string;
   @IsInt() @Min(1) amount!: number;
   @IsString() @Length(6, 20) phoneNumber!: string;
   @IsOptional() @IsString() @Length(1, 100) reference?: string;
-  @IsOptional() @IsIn(['accepted', 'declined', 'insufficient_funds', 'invalid_number', 'unknown_number', 'expired', 'abandoned', 'pending', 'timeout', 'technical_error', 'provider_unavailable']) scenario?: PaymentScenario;
+  @IsOptional() @IsIn(SCENARIOS) scenario?: PaymentScenario;
 }
 
 @Injectable()
@@ -39,8 +41,25 @@ export class PaymentsService {
     if (idemKey) this.idempotency.set(idemKey, { fingerprint, paymentId: payment.id });
     this.transition(payment, 'PENDING', 'payment.pending');
     if (payment.scenario !== 'pending' && payment.scenario !== 'abandoned') {
-      const target: PaymentStatus = payment.scenario === 'accepted' ? 'SUCCESS' : ['expired'].includes(payment.scenario) ? 'EXPIRED' : ['timeout', 'technical_error', 'provider_unavailable', 'declined', 'insufficient_funds', 'unknown_number'].includes(payment.scenario) ? 'FAILED' : 'PROCESSING';
-      setTimeout(() => { const current = this.records.get(payment.id); if (current?.status === 'PENDING') this.transition(current, target, target === 'SUCCESS' ? 'payment.success' : target === 'EXPIRED' ? 'payment.expired' : target === 'FAILED' ? 'payment.failed' : 'payment.processing'); }, 700).unref?.();
+      const target = this.statusForScenario(payment.scenario);
+      setTimeout(() => { const current = this.records.get(payment.id); if (current?.status === 'PENDING') this.transition(current, target, this.eventForStatus(target)); }, 700).unref?.();
+    }
+    return payment;
+  }
+
+  runScenario(id: string, scenario: PaymentScenario) {
+    if (!SCENARIOS.includes(scenario)) throw new BadRequestException({ code: 'unsupported_scenario', message: 'Scénario de simulation non pris en charge.' });
+    const payment = this.get(id);
+    if (payment.status !== 'PENDING' && payment.status !== 'PROCESSING') throw new ConflictException({ code: 'payment_not_simulatable', message: `Le scénario ne peut pas être lancé pour un paiement à l’état ${payment.status}.` });
+    payment.scenario = scenario;
+    if (scenario === 'pending') { this.log(payment, 'payment.simulation.waiting', { scenario }); return payment; }
+    if (scenario === 'abandoned') { this.transition(payment, 'CANCELLED', 'payment.cancelled', { scenario, reason: 'customer_abandoned' }); return payment; }
+    const target = this.statusForScenario(scenario);
+    if (target === 'SUCCESS' || target === 'FAILED' || target === 'EXPIRED') {
+      this.transition(payment, target, this.eventForStatus(target), { scenario });
+    } else if (target === 'PROCESSING') {
+      if (payment.status === 'PENDING') this.transition(payment, 'PROCESSING', 'payment.processing', { scenario });
+      this.transition(payment, 'FAILED', 'payment.failed', { scenario });
     }
     return payment;
   }
@@ -56,9 +75,20 @@ export class PaymentsService {
     return { id: `ref_${crypto.randomUUID().slice(0, 12)}`, paymentId: p.id, amount: amount ?? p.amount, currency: 'XOF', status: 'REFUND_PENDING' };
   }
 
-  private transition(payment: Payment, next: PaymentStatus, type: string) {
+  private statusForScenario(scenario: PaymentScenario): PaymentStatus {
+    if (scenario === 'accepted') return 'SUCCESS';
+    if (scenario === 'expired') return 'EXPIRED';
+    if (scenario === 'timeout' || scenario === 'technical_error' || scenario === 'provider_unavailable' || scenario === 'declined' || scenario === 'insufficient_funds' || scenario === 'invalid_number' || scenario === 'unknown_number') return 'FAILED';
+    return 'PROCESSING';
+  }
+  private eventForStatus(status: PaymentStatus) { return status === 'SUCCESS' ? 'payment.success' : status === 'FAILED' ? 'payment.failed' : status === 'EXPIRED' ? 'payment.expired' : 'payment.processing'; }
+  private log(payment: Payment, type: string, data: Record<string, unknown>) {
+    const event: PaymentEvent = { id: `evt_${crypto.randomUUID().slice(0, 16)}`, type, occurredAt: new Date().toISOString(), data: { payment_id: payment.id, status: payment.status, ...data } };
+    payment.updatedAt = event.occurredAt; payment.events.push(event); this.eventLog.push(event);
+  }
+  private transition(payment: Payment, next: PaymentStatus, type: string, extra: Record<string, unknown> = {}) {
     if (!ALLOWED_TRANSITIONS[payment.status].includes(next)) throw new ConflictException({ code: 'invalid_state_transition', message: `Transition ${payment.status} → ${next} interdite.` });
-    const event: PaymentEvent = { id: `evt_${crypto.randomUUID().slice(0, 16)}`, type, occurredAt: new Date().toISOString(), data: { payment_id: payment.id, status: next } };
+    const event: PaymentEvent = { id: `evt_${crypto.randomUUID().slice(0, 16)}`, type, occurredAt: new Date().toISOString(), data: { payment_id: payment.id, status: next, ...extra } };
     payment.status = next; payment.updatedAt = event.occurredAt; payment.events.push(event); this.eventLog.push(event);
   }
 }
@@ -73,5 +103,4 @@ export class PaymentsController {
   @Get(':id') get(@Param('id') id: string) { return { data: this.payments.get(id) }; }
   @Post(':id/cancel') cancel(@Param('id') id: string) { return { data: this.payments.cancel(id), simulation: true }; }
   @Post(':id/refunds') refund(@Param('id') id: string, @Body() body: { amount?: number }) { return { data: this.payments.refund(id, body?.amount), simulation: true }; }
-  @Get('events') events() { return { data: this.payments.listEvents() }; }
 }
